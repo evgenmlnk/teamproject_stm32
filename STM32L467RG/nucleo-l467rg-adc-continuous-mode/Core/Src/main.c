@@ -106,10 +106,13 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-		timerValue1 = __HAL_TIM_GET_COUNTER(&htim2);
-		HAL_Delay(1);
-		timerValue2 = __HAL_TIM_GET_COUNTER(&htim2);
+
     /* USER CODE BEGIN 3 */
+		timerValue1 = __HAL_TIM_GET_COUNTER(&htim2);
+		HAL_ADC_PollForConversion(&hadc2,100);
+		adcResult = HAL_ADC_GetValue(&hadc2);
+		timerValue2 = __HAL_TIM_GET_COUNTER(&htim2);
+//		HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }
