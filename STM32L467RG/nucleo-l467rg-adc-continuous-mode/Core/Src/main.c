@@ -109,10 +109,14 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 		timerValue1 = __HAL_TIM_GET_COUNTER(&htim2);
-		HAL_ADC_PollForConversion(&hadc2,100);
-		adcResult = HAL_ADC_GetValue(&hadc2);
+//		HAL_ADC_PollForConversion(&hadc2,100);
+//		adcResult = HAL_ADC_GetValue(&hadc2);
+		  while (!((ADC2->ISR) & ADC_ISR_EOC)){;} // wait for EOC (end of conversion) flag is set
+
+		  adcResult = ADC2->DR;
+//				HAL_Delay(1000);
 		timerValue2 = __HAL_TIM_GET_COUNTER(&htim2);
-//		HAL_Delay(1);
+
   }
   /* USER CODE END 3 */
 }
@@ -243,7 +247,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 79;
+  htim2.Init.Prescaler = 7;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV2;
