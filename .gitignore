@@ -51,7 +51,57 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# STM32CubeIDE
+# STM32CubeIDE specific files and folders
 .metadata/
 .settings/
-*.ld
+.project
+.cproject
+.localhistory/
+*.launch
+.build/
+Debug/
+Release/
+.simulation/
+*.list
+*.lst
+*.crf
+*.dep
+*.bak
+*.dmp
+*.swp
+*.log
+
+# uTrace specific folders
+utrace/
+utrace_workspace/
+utrace_debug/
+
+# Other IDE and tool-specific files
+.idea/
+.vscode/
+*.code-workspace
+.ipch/
+*.user
+*.suo
+*.opendb
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+
+# Editor and OS-specific files
+*~
+*.tmp
+*.swp
+*.swo
+*.swn
+*.bak
+*.orig
+*.lock
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# STM32CubeMX specific files
+*.ioc
+*.txt
