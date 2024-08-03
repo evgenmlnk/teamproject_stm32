@@ -76,6 +76,8 @@ void Error_Handler(void);
 #define X1_PRELOAD_SIZE 4
 #define Y_OUTPUT_BUFF_SIZE 2
 
+#define STORE_REG_STATE_ARRAY_SIZE 20
+
 #define FUNC_Pos 24U
 #define FUNC_Msk (0x7FUL << FUNC_Pos)
 #define P_Pos    0U   // P starts at bit 0
@@ -84,13 +86,12 @@ void Error_Handler(void);
 #define DELAY 100
 
 extern void Read_FMAC_Status();
-extern uint8_t iFMAC_Interrupt;
-extern uint8_t iREN;
-extern uint8_t iWEN;
-extern const int16_t aFIRInputX_q15[];
-extern int16_t aFIROutputY_q15[];
-extern uint32_t iX1_FULL;
-extern uint32_t iY_EMPTY;
+
+extern uint8_t Interrupt;
+extern uint8_t REN;
+extern uint8_t WEN;
+
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

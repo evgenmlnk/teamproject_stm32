@@ -218,30 +218,29 @@ void EXTI15_10_IRQHandler(void)
 void FMAC_IRQHandler(void)
 {
   /* USER CODE BEGIN FMAC_IRQn 0 */
-	uint32_t iXfull;
-	uint32_t iYempty;
 
-	__HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_WIEN);
-	__HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_RIEN);
+	FMAC->CR &= ~3;  // disable WIEN and RIEN interrupts
+//	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
 
-//	__HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_RIEN);
-	iXfull = (FMAC->SR & 0x02) ? 1 : 0;
-	iYempty = (FMAC->SR & 0x01)  ? 1 : 0;
-	if(!iXfull)
+
+	Interrupt = 1;
+
+//	iXfull = (FMAC->SR & 0x02) ? 1 : 0;
+//	iYempty = (FMAC->SR & 0x01)  ? 1 : 0;
+	if(!(FMAC->SR & 0x02))
 	{
-		 iWEN = 9;
+		WEN = 1;
 	}
 //
-	if(!iYempty){
-
-		iREN = 11;
+	if(!(FMAC->SR & 0x01)){
+		REN = 1;
 	}
 
-		iFMAC_Interrupt = 3;
+
 
 
   /* USER CODE END FMAC_IRQn 0 */
- //HAL_FMAC_IRQHandler(&hfmac);
   /* USER CODE BEGIN FMAC_IRQn 1 */
 
   /* USER CODE END FMAC_IRQn 1 */
