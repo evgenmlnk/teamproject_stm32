@@ -168,7 +168,7 @@ int main(void)
 	/* Enable polling input transfer */
 	sFmacConfig.InputAccess = FMAC_BUFFER_ACCESS_IT;
 	/* Enable polling output transfer */
-	sFmacConfig.OutputAccess = FMAC_BUFFER_ACCESS_IT;
+	sFmacConfig.OutputAccess = FMAC_BUFFER_ACCESS_POLLING;
 	/* Enable clipping of the output at 0x7FFF and 0x8000 */
 	sFmacConfig.Clip = FMAC_CLIP_DISABLED;
 	/* P parameter contains number of coefficients */
@@ -212,135 +212,145 @@ int main(void)
 	Error_Handler();
 	}
 
-//	aX1_buffer[++n] = 3;
-//	aY_buffer[n] = 1;
-//	readRegistersState();
-//	HAL_Delay(1);
 
+	FMAC->PARAM &= ~FMAC_PARAM_START; // clear PARAM_START bit
+	FMAC->PARAM &= ~P_Msk; // Clear the P[7:0] field
+	FMAC->PARAM |= (X2_B_COEFF_SIZE << P_Pos);  // Write the value to the P[7:0] field
+	FMAC->PARAM &= ~FUNC_Msk; // Clear the FUNC field
+	FMAC->PARAM |=  ((8 << FUNC_Pos) | FMAC_PARAM_START);  // function 8 - Convolution
 
 
 		FMAC->WDATA = 0;
-
+		FMAC->WDATA = 0;
 		FMAC->WDATA = 0;
 
-		FMAC->WDATA = 0;
-//
-//		FMAC->WDATA = 0;
 
-//	aFIROutputY_q15[0] = FMAC->RDATA;
-//	HAL_Delay(1);
-//	aFIROutputY_q15[0] = FMAC->RDATA;
-//	HAL_Delay(1);
-
-
-
-
-
-	if(WEN){
-
-		FMAC->WDATA = aFIRInputX_q15[0];
-	}
-	aX1_buffer[n] = 4;
+	aX1_buffer[n] = 3;  //stall
 	aY_buffer[n++] = 1;
 	readRegistersState();
-	Interrupt = 0;
-	WEN = 0;
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
 
-	if(WEN){
-		FMAC->WDATA = aFIRInputX_q15[1];
-	}
+
+	FMAC->WDATA = aFIRInputX_q15[0];
 	readRegistersState();
-	aX1_buffer[n] = 4;
+	aX1_buffer[n] = 3; //stall
 	aY_buffer[n++] = 2;
 	Interrupt = 0;
 	WEN = 0;
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
 
-	if(REN){
-		aFIROutputY_q15[0] = FMAC->RDATA;
-	}
+//	FMAC->CR |= 2;  // enable WIEN interrupts
+
+//	while(!WEN);
+	FMAC->WDATA = aFIRInputX_q15[1];
+	aX1_buffer[n] = 4;
+	aY_buffer[n++] = 2;  // stall
 	readRegistersState();
-	aX1_buffer[n] = 3;
-	aY_buffer[n++] = 1;
+	Interrupt = 0;
+	WEN = 0;
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
+
+
+	aFIROutputY_q15[0] = FMAC->RDATA;
+	aX1_buffer[n] = 3;  // stall
+	aY_buffer[n++] = 2;
+	readRegistersState();
 	Interrupt = 0;
 	REN = 0;
-	HAL_Delay(1);
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
 
-	if(WEN){
-		FMAC->WDATA = aFIRInputX_q15[2];
-	}
+
+	FMAC->WDATA = aFIRInputX_q15[2];
 	readRegistersState();
 	aX1_buffer[n] = 4;
-	aY_buffer[n++] = 2;
+	aY_buffer[n++] = 2;  // stall
 	Interrupt = 0;
 	WEN = 0;
-	HAL_Delay(1);
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
 
-	if(WEN){
-		FMAC->WDATA = aFIRInputX_q15[3];
-	}
-	readRegistersState();
+
+
+	FMAC->WDATA = aFIRInputX_q15[3];
 	aX1_buffer[n] = 5;  // buffer is full
 	aY_buffer[n++] = 2;
+	readRegistersState();
 	Interrupt = 0;
 	WEN = 0;
-	HAL_Delay(1);
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
 
-	if(REN){
-		aFIROutputY_q15[1] = FMAC->RDATA;
-	}
+
+//	aFIROutputY_q15[1] = FMAC->RDATA;
 	readRegistersState();
 	aX1_buffer[n] = 4;
-	aY_buffer[n++] = 1;
+	aY_buffer[n++] = 2;
 	Interrupt = 0;
 	REN = 0;
-	HAL_Delay(1);
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
 
 
-	if(WEN){
-		FMAC->WDATA = aFIRInputX_q15[4];
-	}
+//	while(!WEN);
+	FMAC->WDATA = aFIRInputX_q15[4];
 	readRegistersState();
 	aX1_buffer[n] = 5; // buffer is full
 	aY_buffer[n++] = 2;
 	Interrupt = 0;
 	WEN = 0;
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
 
-	if(REN){
-		aFIROutputY_q15[2] = FMAC->RDATA;
-	}
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
+
+
+	aFIROutputY_q15[2] = FMAC->RDATA;
 	readRegistersState();
 	aX1_buffer[n] = 4;
-	aY_buffer[n++] = 1;
+	aY_buffer[n++] = 2;
 	Interrupt = 0;
 	REN = 0;
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
 
-	if(WEN){
-		FMAC->WDATA = aFIRInputX_q15[5];
-	}
+
+	FMAC->WDATA = aFIRInputX_q15[5];
 	readRegistersState();
-	Interrupt = 0;
 	aX1_buffer[n] = 5; // buffer is full
 	aY_buffer[n++] = 2;
+	Interrupt = 0;
 	WEN = 0;
-	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
 
-	if(REN){
-		aFIROutputY_q15[3] = FMAC->RDATA;
-	}
+
+	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+//	 __HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
+
+
+	aFIROutputY_q15[3] = FMAC->RDATA;
 	readRegistersState();
 	aX1_buffer[n] = 4; // buffer is full
-	aY_buffer[n++] = 1;
+	aY_buffer[n++] = 2;
 	Interrupt = 0;
+
 	REN = 0;
-//	FMAC->CR |= 3;  // enable WIEN and RIEN interrupts
+
+//	FMAC->CR |= 2;  // enable WIEN  interrupts
 
 
 
@@ -366,8 +376,8 @@ int main(void)
 			X1_FULL = aX1_FULL[i] + 10;
 			X1_buffer = aX1_buffer[i] + 12;
 			START = aSTART[i] + 18;
-			REN = aREN[i] + 20;
-			WEN= aWEN[i] + 22;
+//			REN = aREN[i] + 20;
+//			WEN= aWEN[i] + 22;
 		    CYCLE = 0;
 		    HAL_Delay(50);
 			CYCLE = 1;

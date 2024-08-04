@@ -219,23 +219,24 @@ void FMAC_IRQHandler(void)
 {
   /* USER CODE BEGIN FMAC_IRQn 0 */
 
-	FMAC->CR &= ~3;  // disable WIEN and RIEN interrupts
-//	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
-//	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
+	//FMAC->CR &= ~3;  // disable WIEN and REN interrupts
+	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_WIEN);
+	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_RIEN);
+	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
+	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
 
 
-	Interrupt = 1;
 
-//	iXfull = (FMAC->SR & 0x02) ? 1 : 0;
-//	iYempty = (FMAC->SR & 0x01)  ? 1 : 0;
-	if(!(FMAC->SR & 0x02))
+
+	if(!(FMAC->SR & 0x02))  // X1 full
 	{
+		Interrupt = 1;
 		WEN = 1;
 	}
-//
-	if(!(FMAC->SR & 0x01)){
-		REN = 1;
-	}
+
+//	if(!(FMAC->SR & 0x01)){  // Y empty
+//		REN = 1;
+//	}
 
 
 
