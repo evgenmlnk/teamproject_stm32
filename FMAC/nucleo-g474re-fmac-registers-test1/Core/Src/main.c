@@ -50,20 +50,35 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 const int16_t aFilterCoeffB_q15[X2_B_COEFF_SIZE] = {0x2000,  0x2000,  0x2000, 0x2000};  // SMA filter with 4 taps with value 0.25
 const int16_t aFilterPreloadValues_q15[X1_PRELOAD_SIZE] = {0};
-const int16_t aFIRInputX_q15[INPUT_SIZE_N] = {0x7FFF, 0, 0, 0, 0, 0, 0, 0, 0, 0};  // Dirac impulse
+const int16_t aFIRInputX_q15[INPUT_SIZE_N] = {0, 0, 0, 0x7FFF, 0, 0, 0, 0, 0, 0}; // Dirac impulse
 int16_t aFIROutputY_q15[INPUT_SIZE_N];
 
-uint8_t iFMAC_Interrupt = 2; //interrupt flag, offset 2 for readability in STM32CubeMonitor;
-uint8_t iREN = 10;
-uint8_t iWEN = 8;
-uint32_t iFMAC_START;
-uint32_t iX1_FULL;
-uint32_t iY_EMPTY;
+
+uint8_t aY_EMPTY[STORE_REG_STATE_ARRAY_SIZE];
+uint8_t aY_expected_no_of_samples[STORE_REG_STATE_ARRAY_SIZE];
+uint8_t aInterrupt[STORE_REG_STATE_ARRAY_SIZE];
+uint8_t aX1_FULL[STORE_REG_STATE_ARRAY_SIZE];
+uint8_t aX1_expected_no_of_samples[STORE_REG_STATE_ARRAY_SIZE];
+uint8_t aSTART[STORE_REG_STATE_ARRAY_SIZE];
+
+uint8_t aREN[STORE_REG_STATE_ARRAY_SIZE];
+uint8_t aWEN[STORE_REG_STATE_ARRAY_SIZE];
+
+uint32_t Y_EMPTY = 0;
+uint32_t Y_expected_no_of_samples_in_buffer;
+uint8_t Interrupt = 0; //interrupt flag
+uint32_t X1_FULL = 0;
+uint32_t X1_expected_no_of_samples;
+uint32_t START = 0;
+uint32_t CYCLE = 0;
+
+uint8_t REN = 0;
+uint8_t WEN = 0;
 
 uint16_t outputSize; // for HAL FMAC
 uint16_t inputSize; // for HAL FMAC
 
-uint64_t delayCounter = 0xFFFFF;
+int n;
 
 /* USER CODE END PV */
 
@@ -78,17 +93,8 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void Read_FMAC_Status(){
-	/* Read status flags */
-//	iY_EMPTY = FMAC->SR & FMAC_SR_YEMPTY;
-	iY_EMPTY = (FMAC->SR & 0x01)  ? 1 : 0;
-//	iX1_FULL = (FMAC->SR & FMAC_SR_X1FULL) + 4;
-//	iX1_FULL = (FMAC->SR & FMAC_SR_X1FULL >> 1) + 4;
-	iX1_FULL = (FMAC->SR & 0x02) ? 1 : 0;
-	iX1_FULL = iX1_FULL + 4;
-//	iFMAC_START = (FMAC->PARAM  & FMAC_PARAM_START) + 6;
-	iFMAC_START = (FMAC->PARAM >> 31) + 6;
-}
+// Function to create a 3 clock cycle delay
+
 /* USER CODE END 0 */
 
 /**
@@ -152,9 +158,9 @@ int main(void)
 	/* Enable polling input transfer */
 	sFmacConfig.InputAccess = FMAC_BUFFER_ACCESS_IT;
 	/* Enable polling output transfer */
-	sFmacConfig.OutputAccess = FMAC_BUFFER_ACCESS_IT;
+	sFmacConfig.OutputAccess = FMAC_BUFFER_ACCESS_POLLING;
 	/* Enable clipping of the output at 0x7FFF and 0x8000 */
-	sFmacConfig.Clip = FMAC_CLIP_DISABLED; //FMAC_CLIP_ENABLED; //FMAC_CLIP_DISABLED;
+	sFmacConfig.Clip = FMAC_CLIP_DISABLED;
 	/* P parameter contains number of coefficients */
 	sFmacConfig.P = X2_B_COEFF_SIZE;
 	/* Q parameter is not used */
@@ -164,22 +170,15 @@ int main(void)
 
 	/* Read status flags */
 
-	Read_FMAC_Status();
-	HAL_Delay(DELAY);
 
 	/* Configure the FMAC */
 	if (HAL_FMAC_FilterConfig(&hfmac, &sFmacConfig) != HAL_OK)
 	/* Configuration Error */
 	Error_Handler();
 
-	//  FMAC->CR |= FMAC_CR_OVFLIEN;
-	//  FMAC->CR |= FMAC_CR_UNFLIEN;
-
 	/* There is no error in the output values: Turn LED2 on */
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
 
-	Read_FMAC_Status();
-	HAL_Delay(DELAY);
 
 	/* Preload  input buffer with 4 samples*/
 	if (HAL_FMAC_FilterPreload(&hfmac, aFilterPreloadValues_q15, X1_PRELOAD_SIZE, NULL, 0) != HAL_OK)
@@ -188,65 +187,239 @@ int main(void)
 	Error_Handler();
 	}
 
-	Read_FMAC_Status();
-	HAL_Delay(DELAY);
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	// initial expected state of X1 and Y buffers
+	aX1_expected_no_of_samples[n] = 4; // X1 is preloaded wit samples x[0:3]
+	aY_expected_no_of_samples[n++] = 0; // Y is empty
+
 
 	/* Start FIR-Filter */
 
-//		FMAC->PARAM &= ~FMAC_PARAM_START; // clear PARAM_START bit
-//		FMAC->PARAM &= ~P_Msk; // Clear the P[7:0] field
-//		FMAC->PARAM |= (X2_B_COEFF_SIZE << P_Pos);  // Write the value to the P[7:0] field
-//		FMAC->PARAM &= ~FUNC_Msk; // Clear the FUNC field
-//		FMAC->PARAM |=  ((8 << FUNC_Pos) | FMAC_PARAM_START);  // function 8 - Convolution
-	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_OVFLIEN);
-	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_UNFLIEN);
-//	 __HAL_FMAC_DISABLE_IT(&hfmac, FMAC_IT_RIEN);
+//	outputSize = INPUT_SIZE_N;
+//	if (HAL_FMAC_FilterStart(&hfmac, aFIROutputY_q15, &outputSize) != HAL_OK)
+//	{
+//
+//	Error_Handler();
+//	}
+
+	FMAC->PARAM &= ~FMAC_PARAM_START; // clear PARAM_START bit
+	FMAC->PARAM &= ~P_Msk; // Clear the P[7:0] field
+	FMAC->PARAM |= (X2_B_COEFF_SIZE << P_Pos);  // Write the value to the P[7:0] field
+	FMAC->PARAM &= ~FUNC_Msk; // Clear the FUNC field
+	FMAC->PARAM |=  ((8 << FUNC_Pos) | FMAC_PARAM_START);  // function 8 - Convolution
+
+	// wait 3 clock cycles before reading FMAC registers
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	// read FMAC registers
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	//read interrupt flag
+	aInterrupt[n] = Interrupt;
+
+	// calculate y[0] using x[0:3]
+	aX1_expected_no_of_samples[n] = 3; // sample x[0] discarded after calculation
+	aY_expected_no_of_samples[n++] = 1;  // first sample available  y[0]
+
+	Interrupt = 0;  // reset interrupt flag
 
 
-	outputSize = INPUT_SIZE_N;
-	if (HAL_FMAC_FilterStart(&hfmac, aFIROutputY_q15, &outputSize) != HAL_OK)
-	{
+	FMAC->WDATA = aFIRInputX_q15[4];  // write x[4]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
 
-	Error_Handler();
-	}
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
 
+	// calculate y[1] using x[1:4]
+	aX1_expected_no_of_samples[n] = 3;  // sample x[1] discarded after calculation
+	aY_expected_no_of_samples[n++] = 2; // // y[0] and y[1] are in buffer -> Y is full
 
+	Interrupt = 0;
 
-
-
-	  for(int i = 0; i < INPUT_SIZE_N; i++)
-	  {
-		    if(iFMAC_Interrupt == 3){
-//		    	Read_FMAC_Status();
-//		    	HAL_Delay(DELAY);
-
-			    if((iWEN == 9)){
-			    	if(i>1)
-			    		FMAC->WDATA = aFIRInputX_q15[i-2];
-			    	iFMAC_Interrupt = 2;
-			    	iWEN = 8;
-			    	Read_FMAC_Status();
+	FMAC->CR |= 2;  // enable WIEN interrupts
 
 
-			    	__HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_WIEN);
-			    }
+	FMAC->WDATA = aFIRInputX_q15[5]; // write x[5]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
 
-			    if((iREN == 11) ){
-			    	if(i==0)
-			    		aFIROutputY_q15[i] = FMAC->RDATA;
-			    	iFMAC_Interrupt = 2;
-			    	iREN = 10;
-			    	Read_FMAC_Status();
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
 
-					__HAL_FMAC_ENABLE_IT(&hfmac, FMAC_IT_RIEN);
-			    }
+	// calculate y[1] using x[2:5]
+	aX1_expected_no_of_samples[n] = 4;
+	aY_expected_no_of_samples[n++] = 2;  // stall
 
-		    	HAL_Delay(DELAY);
+	Interrupt = 0;
+
+	FMAC->CR |= 2;  // enable WIEN interrupts
 
 
-		    }
+	aFIROutputY_q15[0] = FMAC->RDATA;  // read y[0]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
 
-	  }
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 3;  // stall
+	aY_expected_no_of_samples[n++] = 2;
+
+	Interrupt = 0;
+
+	FMAC->CR |= 2;  // enable WIEN interrupts
+
+
+	FMAC->WDATA = aFIRInputX_q15[6];  // write x[6]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 4;
+	aY_expected_no_of_samples[n++] = 2;  // stall
+
+	Interrupt = 0;
+
+	 FMAC->CR |= 2;  // enable WIEN interrupts
+
+
+
+	FMAC->WDATA = aFIRInputX_q15[7];  // write x[7]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 5;
+	aY_expected_no_of_samples[n++] = 2;
+
+	Interrupt = 0;
+
+	 FMAC->CR |= 2;  // enable WIEN interrupts
+
+
+	aFIROutputY_q15[1] = FMAC->RDATA; // read y[1]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 4;
+	aY_expected_no_of_samples[n++] = 2;
+
+	Interrupt = 0;
+
+	 FMAC->CR |= 2;  // enable WIEN interrupts
+
+
+	FMAC->WDATA = aFIRInputX_q15[8]; // write x[8]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 5; // buffer is full
+	aY_expected_no_of_samples[n++] = 2;
+
+	Interrupt = 0;
+
+	 	FMAC->CR |= 2;  // enable WIEN interrupts
+
+
+	aFIROutputY_q15[2] = FMAC->RDATA; // read y[2]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 4;
+	aY_expected_no_of_samples[n++] = 2; // stall
+
+	Interrupt = 0;
+
+	FMAC->CR |= 2;  // enable WIEN interrupts
+
+
+	FMAC->WDATA = aFIRInputX_q15[9]; // write x[9]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 5;
+	aY_expected_no_of_samples[n++] = 2; // stall
+
+	Interrupt = 0;
+
+	 FMAC->CR |= 2;  // enable WIEN interrupts
+
+
+	aFIROutputY_q15[3] = FMAC->RDATA; // read y[2]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & 0x01)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & 0x02) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 4;
+	aY_expected_no_of_samples[n++] = 2;
+
+	Interrupt = 0;
+
+//	FMAC->CR |= 2;  // enable WIEN  interrupts
+
 
 
 
@@ -260,6 +433,32 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+
+	  for(int i = 0; i < STORE_REG_STATE_ARRAY_SIZE; i++){
+
+
+			Y_EMPTY =  aY_EMPTY[i] + 2; // add offset for readability in CubeMonitor
+			Y_expected_no_of_samples_in_buffer = aY_expected_no_of_samples[i] + 4;
+			Interrupt = aInterrupt[i] + 8;
+			X1_FULL = aX1_FULL[i] + 10;
+			X1_expected_no_of_samples = aX1_expected_no_of_samples[i] + 12;
+			START = aSTART[i] + 18;
+//			REN = aREN[i] + 20;
+//			WEN= aWEN[i] + 22;
+		    CYCLE = 0;
+		    HAL_Delay(50);
+			CYCLE = 1;
+			HAL_Delay(50);
+	  }
+		Y_EMPTY = 0;
+		Interrupt = 0;
+		X1_FULL = 0;
+		START = 0;
+
+		HAL_Delay(500);
+
+
 
   }
   /* USER CODE END 3 */

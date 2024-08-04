@@ -26,18 +26,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define FUNC_Pos 24U
-#define FUNC_Msk (0x7FUL << FUNC_Pos)
-#define P_Pos    0U   // P starts at bit 0
-#define P_Msk    (0xFFUL << P_Pos) // 8-bit wide mask
 
-#define INPUT_SIZE_N 10
-#define FIR_COEFF_B_SIZE 5
-#define PRELOAD_SIZE 5
-#define INPUT_BUFFER_SIZE 5
-#define OUTPUT_BUFFER_SIZE 2
-
-#define POLLING_TIMEOUT         1000
 /* declare a filter configuration structure */
 FMAC_FilterConfigTypeDef sFmacConfig;
 /* USER CODE END PTD */
@@ -67,12 +56,11 @@ uint16_t inputSize; // for HAL FMAC
 uint16_t test_FIROutputY;
 
 static int16_t aFilterCoeffB_q15[FIR_COEFF_B_SIZE] = {0x1999,  0x1999,  0x1999, 0x1999, 0x1999};
-//static int16_t aFIRInputX_q15[INPUT_SIZE_N] = {0x7FFF, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-static int16_t aFIRInputX_q15[INPUT_SIZE_N] = {0x1999, 0x1999, 0x1999,0x1999, 0x1999, 0x1999, 0x1999, 0x1999, 0x1999, 0x1999};
-//static int16_t  aFIRInputX_q15[INPUT_SIZE_N] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static int16_t aFIRInputX_q15[INPUT_SIZE_N] = {0x7FFF, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int16_t aFIROutputY_q15[INPUT_SIZE_N];
 static int16_t aFilterPreloadValues_q15[PRELOAD_SIZE] = {0};
-//static int16_t aFilterPreloadValues_q15[PRELOAD_SIZE] = {0x7FFF, 0, 0, 0, 0};
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -174,8 +162,6 @@ int main(void)
   /* Configuration Error */
   Error_Handler();
 
-//  FMAC->CR |= FMAC_CR_OVFLIEN;
-//  FMAC->CR |= FMAC_CR_UNFLIEN;
 
   /* There is no error in the output values: Turn LED2 on */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
@@ -197,40 +183,37 @@ if (HAL_FMAC_FilterStart(&hfmac, aFIROutputY_q15, &outputSize) != HAL_OK)
 		}
 
 
+	HAL_Delay(1);
+
+
 //	FMAC->PARAM &= ~FMAC_PARAM_START; // clear PARAM_START bit
 //	FMAC->PARAM &= ~P_Msk; // Clear the P[7:0] field
 //	FMAC->PARAM |= (FIR_COEFF_B_SIZE << P_Pos);  // Write the value to the P[7:0] field
 //	FMAC->PARAM &= ~FUNC_Msk; // Clear the FUNC field
 //	FMAC->PARAM |=  ((8 << FUNC_Pos) | FMAC_PARAM_START);  // function 8 - Convolution
 	HAL_Delay(1);
-//	inputSize = INPUT_SIZE_N;
-//
-//	  if(HAL_FMAC_AppendFilterData(&hfmac, aFIRInputX_q15, &inputSize) != HAL_OK)
-//			  Error_Handler();
-//
-//	  if(HAL_FMAC_PollFilterData(&hfmac, 100) != HAL_OK)
-//		  	  Error_Handler();
+
 
 /* write and read buffers */
 	  for(int i = 0; i < INPUT_SIZE_N; i++)
 	  {
 
 
-//		while((FMAC->SR) & FMAC_SR_X1FULL);  // check buffer full flag
+		while((FMAC->SR) & FMAC_SR_X1FULL);  // check buffer full flag
 		HAL_Delay(1);
 		FMAC->WDATA = aFIRInputX_q15[i];
 
-//		while((FMAC->SR) & FMAC_SR_YEMPTY);
+		while((FMAC->SR) & FMAC_SR_YEMPTY);
 		HAL_Delay(1);
-//		aFIROutputY_q15[i] = FMAC->RDATA;
+		aFIROutputY_q15[i] = FMAC->RDATA;
 
       // Read the current cycle count
-       cycleCount = DWT->CYCCNT;
+//       cycleCount = DWT->CYCCNT;
       // Reset the cycle counter
-       DWT->CYCCNT = 0;
+//       DWT->CYCCNT = 0;
 
-//  		printf("%d,%d,%d\n\r"  , i,aFIRInputX_q15[i], aFIROutputY_q15[i]);
-//  		HAL_Delay(100);
+  		printf("%d,%d,%d\n\r"  , i,aFIRInputX_q15[i], aFIROutputY_q15[i]);
+  		HAL_Delay(100);
 	  }
   /* USER CODE END 2 */
 
