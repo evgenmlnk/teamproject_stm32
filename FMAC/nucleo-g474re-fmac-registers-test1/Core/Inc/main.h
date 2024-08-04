@@ -85,8 +85,6 @@ void Error_Handler(void);
 
 #define DELAY 100
 
-extern void Read_FMAC_Status();
-
 extern uint8_t Interrupt;
 extern uint8_t REN;
 extern uint8_t WEN;
