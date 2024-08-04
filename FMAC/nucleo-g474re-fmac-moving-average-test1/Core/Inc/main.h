@@ -70,7 +70,16 @@ void Error_Handler(void);
 #define T_SWO_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+#define FUNC_Pos 24U
+#define FUNC_Msk (0x7FUL << FUNC_Pos)
+#define P_Pos    0U   // P starts at bit 0
+#define P_Msk    (0xFFUL << P_Pos) // 8-bit wide mask
 
+#define INPUT_SIZE_N 10
+#define FIR_COEFF_B_SIZE 5
+#define PRELOAD_SIZE 5
+#define INPUT_BUFFER_SIZE 5
+#define OUTPUT_BUFFER_SIZE 5
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
