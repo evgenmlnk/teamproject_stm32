@@ -236,7 +236,7 @@ int main(void)
 
 	Interrupt = 0;  // reset interrupt flag
 
-
+// write 3 samples into X1 buffer
 	FMAC->WDATA = aFIRInputX_q15[4];  // write x[4]
 	FMAC->CR |= 2;  // enable WIEN interrupts
 	FMAC->WDATA = aFIRInputX_q15[5]; // write x[5]
@@ -247,68 +247,19 @@ int main(void)
 	asm("NOP");
 	asm("NOP");
 
+	// read FMAC registers
 	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
 	aInterrupt[n] = Interrupt;
 	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
 	aSTART[n] = (FMAC->PARAM >> 31);
 
 
-	aX1_expected_no_of_samples[n] = 6;
-	aY_expected_no_of_samples[n++] = 1;
+	aX1_expected_no_of_samples[n] = 5;
+	aY_expected_no_of_samples[n++] = 2;
 
 	Interrupt = 0;
 
 
-
-
-
-//	FMAC->CR |= 2;  // enable WIEN interrupts
-//
-//	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
-//	aInterrupt[n] = Interrupt;
-//	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
-//	aSTART[n] = (FMAC->PARAM >> 31);
-//
-//
-//	aX1_expected_no_of_samples[n] = 5;
-//	aY_expected_no_of_samples[n++] = 2;
-//
-//	Interrupt = 0;
-
-
-
-//	FMAC->WDATA = aFIRInputX_q15[6];  // write x[6]
-//	asm("NOP");
-//	asm("NOP");
-//	asm("NOP");
-//
-//	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
-//	aInterrupt[n] = Interrupt;
-//	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
-//	aSTART[n] = (FMAC->PARAM >> 31);
-//
-//	aX1_expected_no_of_samples[n] = 5;
-//	aY_expected_no_of_samples[n++] = 2;
-
-	Interrupt = 0;
-//
-//	 FMAC->CR |= 2;  // enable WIEN interrupts
-//
-//	aFIROutputY_q15[0] = FMAC->RDATA;  // read y[0]
-//	asm("NOP");
-//	asm("NOP");
-//	asm("NOP");
-//
-//	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
-//	aInterrupt[n] = Interrupt;
-//	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
-//	aSTART[n] = (FMAC->PARAM >> 31);
-//
-//	aX1_expected_no_of_samples[n] = 5;  // stall
-//	aY_expected_no_of_samples[n++] = 1;
-//
-//	Interrupt = 0;
-//
 	FMAC->CR |= 2;  // enable WIEN interrupts
 
 	FMAC->WDATA = aFIRInputX_q15[7];  // write x[7]
@@ -326,27 +277,7 @@ int main(void)
 
 	Interrupt = 0;
 
-//	 FMAC->CR |= 2;  // enable WIEN interrupts
-//
-//
-//	aFIROutputY_q15[1] = FMAC->RDATA; // read y[1]
-//	asm("NOP");
-//	asm("NOP");
-//	asm("NOP");
-//
-//	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
-//	aInterrupt[n] = Interrupt;
-//	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
-//	aSTART[n] = (FMAC->PARAM >> 31);
-//
-//	aX1_expected_no_of_samples[n] = 5;
-//	aY_expected_no_of_samples[n++] = 1;
-//
-//	Interrupt = 0;
-//
-//	 FMAC->CR |= 2;  // enable WIEN interrupts
-//
-//
+
 	FMAC->WDATA = aFIRInputX_q15[8]; // write x[8]
 	asm("NOP");
 	asm("NOP");
@@ -363,7 +294,81 @@ int main(void)
 	Interrupt = 0;
 
 
+	FMAC->CR |= 2;  // enable WIEN  interrupts
+
+
+
+
+	aFIROutputY_q15[0] = FMAC->RDATA; // read y[0]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 6;
+	aY_expected_no_of_samples[n++] = 2;
+
+	Interrupt = 0;
+
+	FMAC->CR |= 2;  // enable WIEN  interrupts
+
+	aFIROutputY_q15[1] = FMAC->RDATA; // read y[1]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 5;
+	aY_expected_no_of_samples[n++] = 2;
+
+	Interrupt = 0;
+
+	FMAC->CR |= 2;  // enable WIEN  interrupts
+
+	aFIROutputY_q15[2] = FMAC->RDATA; // read y[2]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 5;
+	aY_expected_no_of_samples[n++] = 1;
+
+	Interrupt = 0;
+
+	FMAC->CR |= 2;  // enable WIEN  interrupts
+
+	aFIROutputY_q15[3] = FMAC->RDATA; // read y[3]
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	aY_EMPTY[n] = (FMAC->SR & FMAC_SR_YEMPTY)  ? 1 : 0;
+	aInterrupt[n] = Interrupt;
+	aX1_FULL[n] = (FMAC->SR & FMAC_SR_X1FULL) ? 1 : 0;
+	aSTART[n] = (FMAC->PARAM >> 31);
+
+	aX1_expected_no_of_samples[n] = 5;
+	aY_expected_no_of_samples[n++] = 0;
+
+	Interrupt = 0;
+
 //	FMAC->CR |= 2;  // enable WIEN  interrupts
+
+
+
 
 
 
@@ -388,9 +393,7 @@ int main(void)
 			Interrupt = aInterrupt[i] + 8;
 			X1_FULL = aX1_FULL[i] + 10;
 			X1_expected_no_of_samples = aX1_expected_no_of_samples[i] + 12;
-			START = aSTART[i] + 18;
-//			REN = aREN[i] + 20;
-//			WEN= aWEN[i] + 22;
+			START = aSTART[i] + 20;
 		    CYCLE = 0;
 		    HAL_Delay(50);
 			CYCLE = 1;
