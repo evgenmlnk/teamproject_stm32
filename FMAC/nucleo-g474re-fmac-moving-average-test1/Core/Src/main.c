@@ -60,6 +60,7 @@ static int16_t aFIRInputX_q15[INPUT_SIZE_N] = {0x7FFF, 0, 0, 0, 0, 0, 0, 0, 0, 0
 int16_t aFIROutputY_q15[INPUT_SIZE_N];
 static int16_t aFilterPreloadValues_q15[PRELOAD_SIZE] = {0};
 
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -181,12 +182,22 @@ if (HAL_FMAC_FilterStart(&hfmac, aFIROutputY_q15, &outputSize) != HAL_OK)
 		  Error_Handler();
 		}
 
+
+	HAL_Delay(1);
+
+
+//	FMAC->PARAM &= ~FMAC_PARAM_START; // clear PARAM_START bit
+//	FMAC->PARAM &= ~P_Msk; // Clear the P[7:0] field
+//	FMAC->PARAM |= (FIR_COEFF_B_SIZE << P_Pos);  // Write the value to the P[7:0] field
+//	FMAC->PARAM &= ~FUNC_Msk; // Clear the FUNC field
+//	FMAC->PARAM |=  ((8 << FUNC_Pos) | FMAC_PARAM_START);  // function 8 - Convolution
 	HAL_Delay(1);
 
 
 /* write and read buffers */
 	  for(int i = 0; i < INPUT_SIZE_N; i++)
 	  {
+
 
 		while((FMAC->SR) & FMAC_SR_X1FULL);  // check buffer full flag
 		HAL_Delay(1);
